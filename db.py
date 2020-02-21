@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Use SQLAlchemy engine to fetch a dataset from configured query_name
+"""Use SQLAlchemy engine to fetch a dataset
 """
 import os
 from sqlalchemy import create_engine
