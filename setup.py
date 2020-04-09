@@ -15,7 +15,7 @@ URL = "https://github.com/tym-xqo/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 
 REQUIRED = [
     "jinja2",
@@ -39,7 +39,7 @@ except FileNotFoundError:
 # Load the package's __version__.py module as a dictionary.
 about = {}
 if not VERSION:
-    project_slug = "db"
+    project_slug = "raw"
     with open(os.path.join(here, project_slug, "__version__.py")) as f:
         exec(f.read(), about)
 else:

@@ -8,6 +8,8 @@ I've copy-pasted this enough times that it seemed worth packaging. Really not mu
 
 ## Usage
 
+Configure your database connection string by setting `$DATABASE_URL` in your environment.
+
 ```python
 >>> from raw import db
 >>> x = db.result('select version()');
