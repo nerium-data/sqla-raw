@@ -24,10 +24,11 @@ def process_template(obj, **kwargs):
     return template.render(kwargs)
 
 
-def result(sql, **kwargs):
+def result(sql, jinja=None, **kwargs):
     try:
         db = connection()
-        sql = process_template(sql, **kwargs)
+        if jinja:
+            sql = process_template(sql, **kwargs)
         cur = db.execute(sql, **kwargs)
         cols = cur.keys()
         result = cur.fetchall()
@@ -38,6 +39,7 @@ def result(sql, **kwargs):
 
 
 if __name__ == "__main__":
+    os.environ["DATABASE_URL"] = "sqlite:///"
     sql = "select 'foo' as bar"
     result = result(sql)
     assert result == [{"bar": "foo"}]
