@@ -5,7 +5,7 @@
 import os
 
 from jinja2.sandbox import SandboxedEnvironment
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 
 def connection():
@@ -26,13 +26,14 @@ def process_template(obj, **kwargs):
 
 def result(sql, jinja=None, **kwargs):
     try:
-        db = connection()
-        if jinja:
-            sql = process_template(sql, **kwargs)
-        cur = db.execute(sql, **kwargs)
-        cols = cur.keys()
-        result = cur.fetchall()
-        rows = [dict(zip(cols, row)) for row in result]
+        with connection() as conn:
+            if jinja:
+                sql = process_template(sql, **kwargs)
+            sql = text(sql)
+            cur = conn.execute(sql, **kwargs)
+            cols = cur.keys()
+            result = cur.fetchall()
+            rows = [dict(zip(cols, row)) for row in result]
     except Exception as e:
         rows = [{"error": repr(e)}]
     return rows
