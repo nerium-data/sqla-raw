@@ -29,8 +29,7 @@ def result(sql, jinja=None, **kwargs):
         with connection() as conn:
             if jinja:
                 sql = process_template(sql, **kwargs)
-            sql = text(sql)
-            cur = conn.execute(sql, **kwargs)
+            cur = conn.execute(text(sql), **kwargs)
             cols = cur.keys()
             result = cur.fetchall()
             rows = [dict(zip(cols, row)) for row in result]
