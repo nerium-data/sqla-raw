@@ -15,7 +15,7 @@ URL = "https://github.com/tym-xqo/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 REQUIRED = [
     "jinja2",
@@ -101,7 +101,6 @@ setup(
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     include_package_data=True,
-    license="Apache License, Version 2.0",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
