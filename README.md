@@ -4,7 +4,7 @@ I've copy-pasted this enough times that it seemed worth packaging. Really not mu
 
 ## Installation
 
-`pipenv install sqla-raw[pg]`
+`pip install sqla-raw[pg]`
 
 ## Usage
 

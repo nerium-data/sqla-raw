@@ -15,7 +15,7 @@ URL = "https://github.com/tym-xqo/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 REQUIRED = [
     "jinja2",
