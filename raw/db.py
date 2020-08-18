@@ -3,6 +3,7 @@
 """Use SQLAlchemy engine to fetch a dataset from a query
 """
 import os
+from tempfile import NamedTemporaryFile
 
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
@@ -38,9 +39,29 @@ def result(sql, jinja=None, **kwargs):
     return rows
 
 
+def result_from_file(path, jinja=None, **kwargs):
+    # If path doesn't exist
+    if not os.path.exists(path):
+        rows = [{"error": f"File '{path}' not found!"}]
+        return rows
+
+    # If it's a directory
+    if os.path.isdir(path):
+        rows = [{"error": f"'{path}' is a directory!"}]
+        return rows
+
+    # Read the given .sql file into memory.
+    with open(path) as f:
+        sql = f.read()
+        rows = result(sql=sql, jinja=jinja, **kwargs)
+        return rows
+
+
 if __name__ == "__main__":
     os.environ["DATABASE_URL"] = "sqlite:///"
-    sql = "select 'foo' as bar"
-    result = result(sql)
-    assert result == [{"bar": "foo"}]
-    print(result)
+    with NamedTemporaryFile(mode="w") as temp:
+        temp.write("select 'foo' as bar")
+        temp.seek(0)
+        file_result = result_from_file(temp.name)
+    assert file_result == [{"bar": "foo"}]
+    print(file_result)
