@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Use SQLAlchemy engine to fetch a dataset from a query
+"""Use SQLAlchemy to fetch a result set from a query
 """
 import os
-from tempfile import NamedTemporaryFile
+import re
+
 
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
 
 
-def connection():
+def connect():
+    """Create SQLAlchemy Engine instance and return connection"""
     db_url = os.getenv("DATABASE_URL", "sqlite:///")
     db = create_engine(db_url)
     conn = db.connect()
@@ -17,29 +19,38 @@ def connection():
 
 
 def process_template(obj, **kwargs):
-    """Render query body using jinja2 sandbox
-    TODO: Prevent variable expansion
-    """
+    """Render query body using jinja2 sandbox"""
+    # TODO: Prevent variable expansion
     env = SandboxedEnvironment()
     template = env.from_string(obj)
     return template.render(kwargs)
 
 
-def result(sql, jinja=None, **kwargs):
+def result(sql, **kwargs):
+    """"""
     try:
-        with connection() as conn:
-            if jinja:
+        with connect() as conn:
+            # Render with jinja if template tags appear in query body
+            tag_regex = re.compile("{%.*%}")
+            if tag_regex.search(sql):
                 sql = process_template(sql, **kwargs)
+
+            # Execute query against SQLA Engine connection
             cur = conn.execute(text(sql), **kwargs)
-            cols = cur.keys()
+
+            # Fetch result set and format as list of dictionaries
             result = cur.fetchall()
+            cols = cur.keys()
             rows = [dict(zip(cols, row)) for row in result]
+
     except Exception as e:
+        # In case of any exception, capture it and format as result set
         rows = [{"error": repr(e)}]
+
     return rows
 
 
-def result_from_file(path, jinja=None, **kwargs):
+def result_from_file(path, **kwargs):
     # If path doesn't exist
     if not os.path.exists(path):
         rows = [{"error": f"File '{path}' not found!"}]
@@ -53,11 +64,17 @@ def result_from_file(path, jinja=None, **kwargs):
     # Read the given .sql file into memory.
     with open(path) as f:
         sql = f.read()
-        rows = result(sql=sql, jinja=jinja, **kwargs)
+        rows = result(sql=sql, **kwargs)
         return rows
 
 
 if __name__ == "__main__":
+    """Calling module directly runs a tiny test.
+    `result_from_file` calls `result` so this invokes most of the code above
+    (except for the jinja part)
+    """
+    from tempfile import NamedTemporaryFile
+
     os.environ["DATABASE_URL"] = "sqlite:///"
     with NamedTemporaryFile(mode="w") as temp:
         temp.write("select 'foo' as bar")
