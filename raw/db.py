@@ -27,7 +27,12 @@ def process_template(obj, **kwargs):
 
 
 def result(sql, **kwargs):
-    """"""
+    """Submit SQL to the engine connection and return results as list of dicts
+
+    Usage:
+        `sql` - a string containing valid SQL for submission to the database
+        `kwargs` - key/values pairs assigning values to any named parameters in the query
+    """
     try:
         with connect() as conn:
             # Render with jinja if template tags appear in query body
@@ -51,6 +56,7 @@ def result(sql, **kwargs):
 
 
 def result_from_file(path, **kwargs):
+    """Read SQL from file at `path` and submit via `result()` method"""
     # If path doesn't exist
     if not os.path.exists(path):
         rows = [{"error": f"File '{path}' not found!"}]
@@ -69,10 +75,7 @@ def result_from_file(path, **kwargs):
 
 
 if __name__ == "__main__":
-    """Calling module directly runs a tiny test.
-    `result_from_file` calls `result` so this invokes most of the code above
-    (except for the jinja part)
-    """
+    """Calling module directly runs a tiny test."""
     from tempfile import NamedTemporaryFile
 
     os.environ["DATABASE_URL"] = "sqlite:///"
