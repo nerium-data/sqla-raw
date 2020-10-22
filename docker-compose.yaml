@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  raw:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://postgres:supersecretpassword@db:5432/mydatabase
+      POSTGRES_PASSWORD: supersecretpassword
+    # wait for db to be ready then run tests
+    command: ["./tests/wait-for-postgres.sh", "db", "python", "-m", "pytest"]  
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: mydatabase

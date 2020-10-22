@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Use SQLAlchemy to fetch a result set from a query
 """
+import logging
 import os
 import re
 
@@ -47,25 +48,22 @@ def result(sql, **kwargs):
             result = cur.fetchall()
             cols = cur.keys()
             rows = [dict(zip(cols, row)) for row in result]
+        return rows
 
     except Exception as e:
-        # In case of any exception, capture it and format as result set
-        rows = [{"error": repr(e)}]
+        logging.exception(e)
 
-    return rows
 
 
 def result_from_file(path, **kwargs):
     """Read SQL from file at `path` and submit via `result()` method"""
     # If path doesn't exist
     if not os.path.exists(path):
-        rows = [{"error": f"File '{path}' not found!"}]
-        return rows
+        logging.error(f"File '{path}' not found!")
 
     # If it's a directory
     if os.path.isdir(path):
-        rows = [{"error": f"'{path}' is a directory!"}]
-        return rows
+        logging.error(f"'{path}' is a directory!")
 
     # Read the given .sql file into memory.
     with open(path) as f:

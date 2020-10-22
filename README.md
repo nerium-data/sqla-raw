@@ -20,3 +20,15 @@ Configure your database connection string by setting `$DATABASE_URL` in your env
 Because it's SQLAlchemy, you can safely use named parameters in your SQL string with colon-prepended `:key` format, and assign values in `kwargs`.
 
 You can also use Jinja2 templating syntax to interpolate the query, if desired. (It uses a `SandboxedEnvironment`, but avoid this option with untrusted inputs, for obvious reasons.)
+
+
+## Tests
+
+pytest tests are located in [tests/](tests/)
+They are run using [`docker-compose`](https://docs.docker.com/compose/install/) so as to be able to test the package against a mock database.
+
+```bash
+docker-compose down && docker-compose build && docker-compose up
+```
+
+When tests finish, press `Ctrl+C`
