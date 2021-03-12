@@ -1,33 +1,26 @@
-import logging
-from raw.db import  result, result_from_file
+import os
 
-def test_logging_exception_result(caplog):
-    """Errors should be surfaced and logged,
-    but not stop execution
-    """
+import pytest
+import sqlalchemy.exc
+from raw.db import result, result_from_file
 
-    # trigger an error
-    result("SELECT * FROM nonexistent_relation")
+os.environ["DATABASE_URL"] = "sqlite:///"
 
-    # assert the expected error was surfaced    
-    record = [ record for record in caplog.records][0]
-    assert 'relation "nonexistent_relation" does not exist' in record.message
+
+def test_result(caplog):
+    # trigger an error, and verify it is raised
+    with pytest.raises(sqlalchemy.exc.OperationalError):
+        result("SELECT * FROM nonexistent_relation")
 
     # execution should still be possible
-    result("SELECT * from mydatabase")
+    r = result("SELECT 'bar' as foo;")
+    assert r == [{"foo": "bar"}]
 
 
-def test_logging_exception_result_from_file(caplog):
-    """Errors should be surfaced and logged,
-    but not stop execution
-    """
-
-    # trigger an error
-    result_from_file("./tests/sql_files/bad.sql")
-
-    # assert the expected error was surfaced    
-    record = [ record for record in caplog.records][0]
-    assert 'relation "nonexistent_relation" does not exist' in record.message
+def test_result_from_file(caplog):
+    # trigger an error, and verify it is raised
+    with pytest.raises(sqlalchemy.exc.OperationalError):
+        result_from_file("./tests/sql_files/bad.sql")
 
     # execution should still be possible
     result_from_file("./tests/sql_files/good.sql")

@@ -1,1 +1,1 @@
-SELECT * from mydatabase;
+SELECT 'bar' as foo;
