@@ -1,6 +1,6 @@
 # sqla-raw
 
-An opinated, minimalist library for fetching data from a [SQLAlchemy](https://www.sqlalchemy.org/) connection, when you don't need or want an ORM. You know how to write SQL; `sqla-raw` wants to make it as simple as possible to send that SQL to your database and get results.
+An opinionated, minimalist library for fetching data from a [SQLAlchemy](https://www.sqlalchemy.org/) connection, when you don't need or want an ORM. You know how to write SQL; `sqla-raw` wants to make it as simple as possible to send that SQL to your database and get results.
 
 Really not much more than a single method (`raw.db.result`) making it E-Z to submit raw SQL via a sqla [Engine](https://docs.sqlalchemy.org/en/13/core/connections.html#sqlalchemy.engine.Engine). Returns results as a list of dictionaries, with each dict keyed by column names. 
 
