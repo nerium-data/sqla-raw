@@ -1,1 +1,1 @@
-SELECT * FROM nonexistent_relation;
+select * from nonexistent_relation;
