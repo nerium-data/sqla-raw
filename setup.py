@@ -15,7 +15,7 @@ URL = "https://github.com/tym-xqo/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.4.1"
+VERSION = "0.5.0"
 
 REQUIRED = [
     "jinja2",
@@ -112,6 +112,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Database :: Front-Ends",
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
