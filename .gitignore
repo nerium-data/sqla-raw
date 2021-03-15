@@ -138,3 +138,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 .vscode/settings.json
+
+# Local query files
+query_files/*
+!query_files/README.md

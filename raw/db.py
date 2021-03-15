@@ -4,6 +4,7 @@
 """
 import os
 import re
+from pathlib import Path
 
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
@@ -88,3 +89,21 @@ def result_from_file(path, returns="dict", **kwargs):
         sql = f.read()
         rows = result(sql=sql, returns=returns, **kwargs)
         return rows
+
+
+def path_by_name(query_name):
+    """Find file matching query_name and return Path object"""
+    # flatten directory and grab all the leaf nodes
+    flat_queries = list(Path(os.getenv("QUERY_PATH", "query_files")).glob("**/*"))
+    query_file = None
+    query_file_match = list(filter(lambda i: query_name == i.stem, flat_queries))
+    if query_file_match:
+        # TODO: Warn if more than one match
+        query_file = query_file_match[0]
+    return query_file
+
+
+def result_by_name(query_name, returns="dict", **kwargs):
+    path = path_by_name(query_name)
+    result = result_from_file(path=path, returns=returns, **kwargs)
+    return result

@@ -1,12 +1,15 @@
 import os
+from pathlib import Path
 
 import pytest
 import sqlalchemy.exc
 from sqlalchemy.engine.result import ResultProxy
 
-from raw.db import result, result_from_file
+from raw.db import result, result_from_file, result_by_name
 
 os.environ["DATABASE_URL"] = "sqlite:///"
+query_path = Path(__file__).resolve().parent / "sql_files"
+os.environ["QUERY_PATH"] = str(query_path)
 
 
 def test_result():
@@ -26,6 +29,16 @@ def test_result_from_file():
 
     # execute SQL from file, verify results in tuple format using Jinja2
     r = result_from_file("./tests/sql_files/good.sql", returns="tuples", more=True)
+    assert r == [("bar",), ("baz",)]
+
+
+def test_result_by_name():
+    # trigger an error, and verify it is raised
+    with pytest.raises(sqlalchemy.exc.OperationalError):
+        result_by_name("bad")
+
+    # execute SQL from file, verify results in tuple format using Jinja2
+    r = result_by_name("good", returns="tuples", more=True)
     assert r == [("bar",), ("baz",)]
 
 
