@@ -142,3 +142,4 @@ cython_debug/
 # Local query files
 query_files/*
 !query_files/README.md
+query_files/
