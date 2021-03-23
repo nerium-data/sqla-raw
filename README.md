@@ -40,11 +40,38 @@ Passing argument `returns` to `db.result()` (or `result_from_file()`) overrides 
 
 ### SQL file handling
 
-For longer or more complex queries, it is generally more convenient and maintainable to save your SQL in its own file, rather than include it inline in your Python program. Doing so also allows the queries to be tested and/or reused in your preferred database client tool. `sqla-raw` provides two ways to do this:
+For longer or more complex queries, you may find it more convenient and maintainable to save your SQL in its own file, rather than include it inline as a string in your Python program. Doing so also allows the queries to be tested and/or reused in your preferred database client tool. `sqla-raw` provides two ways to do this:
 
 `result_from_file()` takes a path (any file-like object should also work) and reads your query from there, rather than taking a SQL string argument directly. Contents of the file are handed off to result() so the rest functions identitically.
 
 `result_by_name()` looks for SQL files in a local directory — `${PWD}/query_files` by default, or you may specify any arbitrary filesystem location by setting `$QUERY_PATH` in the environment. The `query_name` arguement is the [stem](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.stem) of the desired file.
+
+### Exception handling
+
+Obviously, when interacting with a database, any number of things can go wrong, that may or may not be the fault of your code. Besides obvious syntax errors, inputs to parameters might be the wrong type, the database could be unreachable, credentials incorrect or changed, etc. Early development versions of `sqla-raw` tried to catch any database exceptions and return them formatted like results, on the theory that any calling program wouldn't want to halt execution on such errors. On further reflection, it doesn't seem like a library should be making that decision, and `sqla-raw` as of version 1.x allows any exceptions it may encounter to be raised in the usual way. Any calling code that does not wish to halt on these exceptions may of course simply wrap the call to any `raw.db` method in a try/except block itself. In hindsight, it probably should have been clear this was the right way to do it all along.
+
 ## Tests
 
 `pytest` tests are located in [tests/](tests/). Install test prerequisites with `pip install -r tests/requirements.txt`; then they can be run with: `python setup.py test` 
+
+## Alternatives and prior art
+
+These are all fine projects, and if `sqla-raw` appeals to you at all, you owe it to yourself to take a look at them. For starters, any of them would give you more control over how and when to instantiate your database connection. These and `sqla-raw` are all similar tools with similar SQL-first, non-ORM philosophies. I haven't benchmarked performance for any one of them, but 3 out of 4 use SQLAlchemy under the covers, and I'd be surprised if there are big differences amoung at least those three. Until some notable difference in performance turns up, the best choice for you is most likely a matter of taste.
+
+- [aiosql](https://github.com/nackjicholson/aiosql) 
+  - Supports standard and async I/O
+  - Turns SQL files into callable methods
+    - Nothing wrong with that, but differernt from the interface chosen for `sqla-raw` (which takes the SQL or file name as argument to a single `result()` method)
+    - Relies on special comments in the SQL
+  - Not SQLAlchemy; supports a more limited set of database drivers
+  - Doesn't handle database connect instantiation (expects to be given a conn object)
+- [PugSQL](https://pugsql.org/)
+  - Based on Clojure's HugSQL library
+  - Uses SQLAlchemy
+  - Similar API to `aiosql`, with commented SQL files used to create methods
+    - Also generates modules from folders of SQL files, and can load multiple such modules
+- [Records](https://github.com/kennethreitz-archive/records)
+  - Another SQLALchemy facade, and a big inspiration for `sqla-raw`
+  - Doesn't seem to be actively maintained
+  - Formats results as a specialized `Record` class, based on [`tablib`](http://docs.python-tablib.org/en/latest/)
+    - Again, nothing wrong with that — `sqla-raw` favors a standard list-of-dicts format for results instead, as lighter weight and easier to introspect
