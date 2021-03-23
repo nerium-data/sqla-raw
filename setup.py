@@ -11,11 +11,11 @@ from setuptools import find_packages, setup, Command
 # Package meta-data.
 NAME = "sqla-raw"
 DESCRIPTION = "A tiny library for submitting raw SQL via SQLAlchemy"
-URL = "https://github.com/tym-xqo/sqla-raw"
+URL = "https://github.com/nerium-data/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "1.0.0-rc.1"
+VERSION = "1.0.0"
 
 REQUIRED = [
     "jinja2",
