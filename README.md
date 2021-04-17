@@ -4,9 +4,7 @@ An opinionated, minimalist library for fetching data from a [SQLAlchemy](https:/
 
 Really not much more than a single method (`raw.db.result()`) that submits raw SQL via a SQLAlchemy [Engine](https://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.Engine) connection. By default, `db.result()` returns all results as a list of dictionaries, keyed by column names. (See __'Usage'__ below for other options)
 
-For convenience, `result_from_file()` and `result_by_name()` allow you to store your SQL in separate local files for submission to the database via `result()`
-
-Engine instantiation is handled implicitly by the first call to `result()`; any subsequent calls use a connection from the pool. The connection string for the Engine is set by `DATABASE_URL` in the environment. All other Engine settings use SQLAlchemy defaults. (Affording explicit creation and disposal of the Engine and exposing the setting of other parameters might be a useful area for further development, if it can be kept simple.)
+For convenience, `result_from_file()` and `result_by_name()` allow you to store your SQL in separate local files for submission to the database via `result()` 
 
 ## Installation
 
@@ -45,6 +43,12 @@ For longer or more complex queries, you may find it more convenient and maintain
 `result_from_file()` takes a path (any file-like object should also work) and reads your query from there, rather than taking a SQL string argument directly. Contents of the file are handed off to result() so the rest functions identitically.
 
 `result_by_name()` looks for SQL files in a local directory — `${PWD}/query_files` by default, or you may specify any arbitrary filesystem location by setting `$QUERY_PATH` in the environment. The `query_name` arguement is the [stem](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.stem) of the desired file.
+
+### SQLAlchemy Engine invocation
+
+By default, Engine instantiation is handled implicitly on first call to `result()`; subsquent calls use a connection from the pool. The default connection string for the Engine is set by `DATABASE_URL` in the environment, and all other Engine settings use SQLAlchemy defaults. This allows you to simply call `result()` and start querying `$DATABASE_URL` immediately with a minimum of fuss. 
+
+In case you require multiple database connections, or more control over Engine parameters, `db.engine()` wraps `sqlalchemy.create_engine()`, so you can set a different connection string or pass additional settings as keyword arguments (see https://docs.sqlalchemy.org/en/14/core/engines.html for options). Once `db.engine()` is explicitly invoked, the engine so instantiated remains as the active connection pool unless changed again.
 
 ### Exception handling
 
