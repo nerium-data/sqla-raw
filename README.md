@@ -60,12 +60,12 @@ Obviously, when interacting with a database, any number of things can go wrong, 
 
 ## Alternatives and prior art
 
-These are all fine projects, and if `sqla-raw` appeals to you at all, you owe it to yourself to take a look at them. For starters, any of them would give you more control over how and when to instantiate your database connection. These and `sqla-raw` are all similar tools with similar SQL-first, non-ORM philosophies. I haven't benchmarked performance for any one of them, but 3 out of 4 use SQLAlchemy under the covers, and I'd be surprised if there are big differences amoung at least those three. Until some notable difference in performance turns up, the best choice for you is most likely a matter of taste.
+These are all fine projects, and if `sqla-raw` appeals to you at all, you owe it to yourself to take a look at them. These and `sqla-raw` are all similar tools with similar SQL-first, non-ORM philosophies. I haven't benchmarked performance for any one of them, but 3 out of 4 use SQLAlchemy under the covers, and I'd be surprised if there are big differences among at least those three. Until some notable difference in performance turns up, the best choice for you is most likely a matter of taste.
 
 - [aiosql](https://github.com/nackjicholson/aiosql) 
   - Supports standard and async I/O
   - Turns SQL files into callable methods
-    - Nothing wrong with that, but differernt from the interface chosen for `sqla-raw` (which takes the SQL or file name as argument to a single `result()` method)
+    - Nothing wrong with that, but different from the interface chosen for `sqla-raw` (which takes the SQL or file name as argument to a single `result()` method)
     - Relies on special comments in the SQL
   - Not SQLAlchemy; supports a more limited set of database drivers
   - Doesn't handle database connect instantiation (expects to be given a conn object)
