@@ -13,12 +13,33 @@ _DBURL = os.getenv("DATABASE_URL", "sqlite:///")
 APPNAME = os.getenv("APPLICATION_NAME", "script/sqla-raw")
 DBURL = f"{_DBURL}?application_name={APPNAME}"
 
-# For pool efficiency, only create the Engine once
-DB = create_engine(DBURL)
+# initialize DB without instantiating engine yet
+DB = None
+
+
+def engine(dburl=DBURL, **kwargs):
+    """Overrride default engine settings
+
+    Args:
+        `dburl`: a database connection in URL format.
+                 Optional, defaults to `$DATABASE_URL` in the environment
+        `kwargs`: key-value pairs with other Engine settings, see
+                  https://docs.sqlalchemy.org/en/14/core/engines.html for details
+    """
+    global DB
+    # close any previous engine
+    if hasattr(DB, "dispose"):
+        DB.dispose()
+    DB = create_engine(dburl, **kwargs)
+    return DB
 
 
 def connect():
     """Connect to SQLAlchemy Engine instance and return connection"""
+    # instantiate default engine if necessary
+    global DB
+    if not DB:
+        DB = engine()
     conn = DB.connect()
     return conn
 
@@ -42,7 +63,7 @@ def result(sql, returns="dict", **kwargs):
                 - tuples: returns a list of tuples
                 - dict (or other): returns a list of dictionaries
             "dict" is default, and will also be the result of any other value
-        `kwargs`: key/value pairs assigning values to any named parameters
+        `kwargs`: key-value pairs assigning values to any named parameters
                    in the query
     """
     with connect() as conn:
@@ -104,6 +125,7 @@ def path_by_name(query_name):
 
 
 def result_by_name(query_name, returns="dict", **kwargs):
+    """Find SQL file at `$QUERY_PATH/name` and pass to `result_from_file()`"""
     path = path_by_name(query_name)
     result = result_from_file(path=path, returns=returns, **kwargs)
     return result

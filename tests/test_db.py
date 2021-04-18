@@ -5,7 +5,7 @@ import pytest
 import sqlalchemy.exc
 from sqlalchemy.engine.result import ResultProxy
 
-from raw.db import result, result_from_file, result_by_name
+from raw.db import engine, result, result_from_file, result_by_name
 
 os.environ["DATABASE_URL"] = "sqlite:///"
 query_path = Path(__file__).resolve().parent / "sql_files"
@@ -43,6 +43,7 @@ def test_result_by_name():
 
 
 def test_proxy_result():
+    engine()
     r = result("select 'bar' as foo;", returns="proxy")
     assert isinstance(r, ResultProxy)
     row = r.fetchone()
@@ -50,6 +51,7 @@ def test_proxy_result():
 
 
 def test_ddl_result():
+    engine()
     result("create table if not exists foo (id int, bar text)", returns="proxy")
     result("insert into foo values (1, 'baz')")
     r = result("select * from foo", returns="tuples")
