@@ -83,7 +83,7 @@ def result(sql, returns="dict", **kwargs):
         `sql`: a string containing valid SQL for submission to the database
         `returns`: {"proxy", "tuples", "dict"}, optional
             indicates desired result set format:
-                - proxy: returns ResultProxy
+                - proxy: returns Result
                 - tuples: returns a list of tuples
                 - dict (or other): returns a list of dictionaries
             "dict" is default, and will also be the result of any other value
@@ -109,7 +109,7 @@ def result(sql, returns="dict", **kwargs):
 
         # Handle result formatting:
         if returns == "proxy":
-            return cur  # Return naked SQLA ResultProxy object
+            return cur  # Return naked SQLA Result object
         elif returns == "tuples":
             return list(cur)  # Return all rows as list of tuples
         else:

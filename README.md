@@ -34,7 +34,7 @@ You can also use [Jinja2](https://palletsprojects.com/p/jinja/) templating synta
 
 ### Options
 
-Passing argument `returns` to `db.result()` (or `result_from_file()`) overrides the default result formatting: `returns="tuples"` brings back a list of tuples with row values instead of dictionaries, and `returns="proxy"` returns the plain SQLAlchemy [ResultProxy](https://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=resultproxy#sqlalchemy.engine.ResultProxy) object directly, for further handling by the caller. The `"proxy"` option allows access to methods (e.g. `fetchone()` or `fetchmany()` ) that `sqla-raw` default usage hides behind its facade; it can also be good for SQL statements (such as `inserts` without `returning` or DDL) that are not expected to return results — although by default these will return an empty list.
+Passing argument `returns` to `db.result()` (or `result_from_file()`) overrides the default result formatting: `returns="tuples"` brings back a list of tuples with row values instead of dictionaries, and `returns="proxy"` returns the plain SQLAlchemy [Result](https://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=resultproxy#sqlalchemy.engine.Result) object directly, for further handling by the caller. The `"proxy"` option allows access to methods (e.g. `fetchone()` or `fetchmany()` ) that `sqla-raw` default usage hides behind its facade; it can also be good for SQL statements (such as `inserts` without `returning` or DDL) that are not expected to return results — although by default these will return an empty list.
 
 ### SQL file handling
 

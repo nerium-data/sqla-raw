@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy.exc
-from sqlalchemy.engine.result import ResultProxy
+from sqlalchemy.engine.result import Result
 
 from raw.db import engine, result, result_from_file, result_by_name
 
@@ -45,7 +45,7 @@ def test_result_by_name():
 def test_proxy_result():
     engine()
     r = result("select 'bar' as foo;", returns="proxy")
-    assert isinstance(r, ResultProxy)
+    assert isinstance(r, Result)
     row = r.fetchone()
     assert row.foo == "bar"
 
