@@ -5,20 +5,46 @@
 import os
 import re
 from pathlib import Path
+from urllib.parse import parse_qs, urlencode
 
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
 
-_DBURL = os.getenv("DATABASE_URL", "sqlite:///")
-APPNAME = os.getenv("APPLICATION_NAME", "script/sqla-raw")
-DBURL = f"{_DBURL}?application_name={APPNAME}"
+
+def set_dburl():
+    """Get $DATABASE_URL from environment, and append APPLICATION_NAME"""
+    _dburl = os.getenv("DATABASE_URL", "sqlite:///")
+    appname = os.getenv("APPLICATION_NAME", "script/sqla-raw")
+
+    res = _dburl.split("?")
+    baseurl = res[0]
+
+    try:
+        qs = res[1]
+        qs = parse_qs(qs)
+    except IndexError:
+        qs = {}
+
+    qs["application_name"] = appname
+    qs = urlencode(qs, doseq=True)
+
+    dburl = f"{baseurl}?qs"
+    return dburl
+
+
+DBURL = set_dburl()
 
 # initialize DB without instantiating engine yet
 DB = None
 
 
 def engine(dburl=DBURL, **kwargs):
-    """Overrride default engine settings
+    """Instantiate SQLAlchemy database Engine object.
+    Run implicitly by `connect()` using environmental settings, or may be invoked
+    explicitly
+
+    Explicit invocation can be useful to support multiple database connections from a
+    single program, or to override default Engine settings as desired
 
     Args:
         `dburl`: a database connection in URL format.
@@ -27,19 +53,17 @@ def engine(dburl=DBURL, **kwargs):
                   https://docs.sqlalchemy.org/en/14/core/engines.html for details
     """
     global DB
-    # close any previous engine
     if hasattr(DB, "dispose"):
-        DB.dispose()
+        DB.dispose()  # close any previous engine
     DB = create_engine(dburl, **kwargs)
     return DB
 
 
 def connect():
     """Connect to SQLAlchemy Engine instance and return connection"""
-    # instantiate default engine if necessary
     global DB
     if not DB:
-        DB = engine()
+        DB = engine()  # instantiate default engine if necessary
     conn = DB.connect()
     return conn
 
@@ -85,11 +109,9 @@ def result(sql, returns="dict", **kwargs):
 
         # Handle result formatting:
         if returns == "proxy":
-            # Return naked SQLA ResultProxy object
-            return cur
+            return cur  # Return naked SQLA ResultProxy object
         elif returns == "tuples":
-            # Return all rows as list of tuples
-            return list(cur)
+            return list(cur)  # Return all rows as list of tuples
         else:
             # Default: return all rows as list of dictionaries
             return [dict(row) for row in cur]
@@ -97,12 +119,13 @@ def result(sql, returns="dict", **kwargs):
 
 def result_from_file(path, returns="dict", **kwargs):
     """Read SQL from file at `path` and submit via `result()` method"""
+    pathobj = Path(path)
     # If path doesn't exist
-    if not os.path.exists(path):
+    if not pathobj.exists():
         raise IOError(f"File '{path}' not found!")
 
     # If it's a directory
-    if os.path.isdir(path):
+    if pathobj.is_dir():
         raise IOError(f"'{path}' is a directory!")
 
     # Read the given file into memory and pass to result().
