@@ -11,10 +11,17 @@ from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
 
 
+# initialize DB without instantiating engine yet
+DB = None
+
+
 def set_dburl():
     """Get $DATABASE_URL from environment, and append APPLICATION_NAME"""
-    _dburl = os.getenv("DATABASE_URL", "sqlite:///")
     appname = os.getenv("APPLICATION_NAME", "script/sqla-raw")
+    _dburl = os.getenv("DATABASE_URL")
+
+    if not _dburl:
+        raise ValueError("You must provide a database url")
 
     res = _dburl.split("?")
     baseurl = res[0]
@@ -32,13 +39,7 @@ def set_dburl():
     return dburl
 
 
-DBURL = set_dburl()
-
-# initialize DB without instantiating engine yet
-DB = None
-
-
-def engine(dburl=DBURL, **kwargs):
+def engine(dburl="", **kwargs):
     """Instantiate SQLAlchemy database Engine object.
     Run implicitly by `connect()` using environmental settings, or may be invoked
     explicitly
@@ -52,9 +53,13 @@ def engine(dburl=DBURL, **kwargs):
         `kwargs`: key-value pairs with other Engine settings, see
                   https://docs.sqlalchemy.org/en/14/core/engines.html for details
     """
+    if not dburl:
+        dburl = set_dburl()
+
     global DB
     if hasattr(DB, "dispose"):
         DB.dispose()  # close any previous engine
+
     DB = create_engine(dburl, **kwargs)
     return DB
 

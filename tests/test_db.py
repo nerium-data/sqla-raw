@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from unittest import mock
 
 import pytest
 import sqlalchemy.exc
@@ -7,9 +8,14 @@ from sqlalchemy.engine.result import Result
 
 from raw.db import engine, result, result_from_file, result_by_name
 
-os.environ["DATABASE_URL"] = "sqlite:///"
 query_path = Path(__file__).resolve().parent / "sql_files"
 os.environ["QUERY_PATH"] = str(query_path)
+
+
+@pytest.fixture(autouse=True)
+def mock_settings_env_vars():
+    with mock.patch.dict(os.environ, {"DATABASE_URL": "sqlite:///"}):
+        yield
 
 
 def test_result():
@@ -43,6 +49,7 @@ def test_result_by_name():
 
 
 def test_proxy_result():
+    # return sqla proxy Result object, verify type and contents of response
     engine()
     r = result("select 'bar' as foo;", returns="proxy")
     assert isinstance(r, Result)
@@ -58,3 +65,9 @@ def test_ddl_result():
     assert r == [
         (1, "baz"),
     ]
+
+
+@mock.patch.dict(os.environ, {"DATABASE_URL": ""})
+def test_missing_dburl_raises_exception():
+    with pytest.raises(ValueError):
+        engine(dburl=None)
