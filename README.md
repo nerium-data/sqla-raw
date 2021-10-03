@@ -18,7 +18,7 @@ Configure your database connection string by setting `$DATABASE_URL` in your env
 >>> from raw import db
 >>> x = db.result('select version()');
 >>> x
-[{'version': 'PostgreSQL 10.10 on x86_64-apple-darwin14.5.0, compiled by Apple LLVM version 7.0.0 (clang-700.1.76), 64-bit'}]
+[{'version': 'PostgreSQL 13.4 on x86_64-apple-darwin19.6.0, compiled by Apple clang version 11.0.3 (clang-1103.0.32.62), 64-bit'}]
 ```
 
 Because it's SQLAlchemy, you can safely use [named parameters](https://docs.sqlalchemy.org/en/latest/core/sqlelement.html?highlight=textclause#sqlalchemy.sql.expression.TextClause.bindparams) in your SQL string with colon-prepended `:key` format, and assign values in `kwargs`.
