@@ -81,7 +81,7 @@ def process_template(obj, **kwargs):
     return template.render(kwargs)
 
 
-def result(sql, returns="dict", **kwargs):
+def result(sql, returns="dict", autocommit=False, **kwargs):
     """Submit SQL to the engine connection and return results as list of dicts
 
     Args:
@@ -92,6 +92,7 @@ def result(sql, returns="dict", **kwargs):
                 - tuples: returns a list of tuples
                 - dict (or other): returns a list of dictionaries
             "dict" is default, and will also be the result of any other value
+        `autocommit` optional boolean, whether to add autocommit=True to execution
         `kwargs`: key-value pairs assigning values to any named parameters
                    in the query
     """
@@ -102,7 +103,10 @@ def result(sql, returns="dict", **kwargs):
             sql = process_template(sql, **kwargs)
 
         # Execute query against SQLA Engine connection
-        cur = conn.execute(text(sql), **kwargs)
+        sql_text = text(sql)
+        if autocommit:
+            sql_text = sql_text.execution_options(autocommit=True)
+        cur = conn.execute(sql_text, **kwargs)
 
         # Prepare return object:
         # Handle statements without resultsets:
@@ -122,7 +126,7 @@ def result(sql, returns="dict", **kwargs):
             return [dict(row) for row in cur]
 
 
-def result_from_file(path, returns="dict", **kwargs):
+def result_from_file(path, returns="dict", autocommit=False, **kwargs):
     """Read SQL from file at `path` and submit via `result()` method"""
     pathobj = Path(path)
     # If path doesn't exist
@@ -152,7 +156,7 @@ def path_by_name(query_name):
     return query_file
 
 
-def result_by_name(query_name, returns="dict", **kwargs):
+def result_by_name(query_name, returns="dict", autocommit=False, **kwargs):
     """Find SQL file at `$QUERY_PATH/name` and pass to `result_from_file()`"""
     path = path_by_name(query_name)
     result = result_from_file(path=path, returns=returns, **kwargs)
