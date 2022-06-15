@@ -42,11 +42,11 @@ For longer or more complex queries, you may find it more convenient and maintain
 
 `result_from_file()` takes a path (any file-like object should also work) and reads your query from there, rather than taking a SQL string argument directly. Contents of the file are handed off to result() so the rest functions identitically.
 
-`result_by_name()` looks for SQL files in a local directory — `${PWD}/query_files` by default, or you may specify any arbitrary filesystem location by setting `$QUERY_PATH` in the environment. The `query_name` arguement is the [stem](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.stem) of the desired file.
+`result_by_name()` looks for SQL files in a local directory — `${PWD}/query_files` by default, or you may specify any arbitrary filesystem location by setting `$QUERY_PATH` in the environment. The `query_name` argument is the [stem](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.stem) of the desired file.
 
 ### SQLAlchemy Engine invocation
 
-By default, Engine instantiation is handled implicitly on first call to `result()`; subsquent calls use a connection from the pool. The default connection string for the Engine is set by `DATABASE_URL` in the environment, and all other Engine settings use SQLAlchemy defaults. This allows you to simply call `result()` and start querying `$DATABASE_URL` immediately with a minimum of fuss. 
+By default, Engine instantiation is handled implicitly on first call to `result()`; subsequent calls use a connection from the pool. The default connection string for the Engine is set by `DATABASE_URL` in the environment, and all other Engine settings use SQLAlchemy defaults. This allows you to simply call `result()` and start querying `$DATABASE_URL` immediately with a minimum of fuss. 
 
 In case you require multiple database connections, or more control over Engine parameters, `db.engine()` wraps `sqlalchemy.create_engine()`, so you can set a different connection string or pass additional settings as keyword arguments (see https://docs.sqlalchemy.org/en/14/core/engines.html for options). Once `db.engine()` is explicitly invoked, the engine so instantiated remains as the active connection pool unless changed again.
 
@@ -75,7 +75,7 @@ These are all fine projects, and if `sqla-raw` appeals to you at all, you owe it
   - Similar API to `aiosql`, with commented SQL files used to create methods
     - Also generates modules from folders of SQL files, and can load multiple such modules
 - [Records](https://github.com/kennethreitz-archive/records)
-  - Another SQLALchemy facade, and a big inspiration for `sqla-raw`
+  - Another SQLAlchemy facade, and a big inspiration for `sqla-raw`
   - Doesn't seem to be actively maintained
   - Formats results as a specialized `Record` class, based on [`tablib`](http://docs.python-tablib.org/en/latest/)
     - Again, nothing wrong with that — `sqla-raw` favors a standard list-of-dicts format for results instead, as lighter weight and easier to introspect
