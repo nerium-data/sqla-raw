@@ -35,7 +35,7 @@ def set_dburl():
     qs["application_name"] = appname
     qs = urlencode(qs, doseq=True)
 
-    dburl = f"{baseurl}?qs"
+    dburl = f"{baseurl}?{qs}"
     return dburl
 
 

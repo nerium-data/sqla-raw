@@ -19,6 +19,7 @@ VERSION = "1.3.0"
 
 REQUIRED = [
     "jinja2",
+    "s3fs",
     "sqlalchemy",
 ]
 
