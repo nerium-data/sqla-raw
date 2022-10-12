@@ -46,7 +46,7 @@ For longer or more complex queries, you may find it more convenient and maintain
 
 #### Files from S3
 
-In addition to the local filesystem, `sqla-raw` can use [`s3fs`](TK) to read SQL files from an S3 bucket. It checks whether any path specifications are in the form of URLs that begin with the `s3://` scheme component.
+In addition to the local filesystem, `sqla-raw` can use [`s3fs`](https://s3fs.readthedocs.io/en/latest/) to read SQL files from an S3 bucket. It checks whether any path specifications are in the form of URLs that begin with the `s3://` scheme component.
 
 - `result_from_file()` takes the full URL to a specific query file
 - `result_by_name()` works with S3 by setting the `$QUERY_PATH` environment variable to the URL of a bucket 
