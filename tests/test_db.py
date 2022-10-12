@@ -8,13 +8,13 @@ from sqlalchemy.engine.result import Result
 
 from raw.db import engine, result, result_from_file, result_by_name
 
-query_path = Path(__file__).resolve().parent / "sql_files"
-os.environ["QUERY_PATH"] = str(query_path)
-
 
 @pytest.fixture(autouse=True)
 def mock_settings_env_vars():
-    with mock.patch.dict(os.environ, {"DATABASE_URL": "sqlite:///"}):
+    query_path = Path(__file__).resolve().parent / "sql_files"
+    with mock.patch.dict(
+        os.environ, {"DATABASE_URL": "sqlite:///", "QUERY_PATH": str(query_path)}
+    ):
         yield
 
 

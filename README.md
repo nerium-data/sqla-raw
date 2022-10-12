@@ -40,9 +40,18 @@ Passing argument `returns` to `db.result()` (or `result_from_file()`) overrides 
 
 For longer or more complex queries, you may find it more convenient and maintainable to save your SQL in its own file, rather than include it inline as a string in your Python program. Doing so also allows the queries to be tested and/or reused in your preferred database client tool. `sqla-raw` provides two ways to do this:
 
-`result_from_file()` takes a path (any file-like object should also work) and reads your query from there, rather than taking a SQL string argument directly. Contents of the file are handed off to result() so the rest functions identitically.
+- `result_from_file()` takes a path (any file-like object should also work) and reads your query from there, rather than taking a SQL string argument directly. Contents of the file are handed off to result() so the rest functions identically.
 
-`result_by_name()` looks for SQL files in a local directory — `${PWD}/query_files` by default, or you may specify any arbitrary filesystem location by setting `$QUERY_PATH` in the environment. The `query_name` argument is the [stem](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.stem) of the desired file.
+- `result_by_name()` looks up files with a `.sql` extension in a local directory — it looks in `${PWD}/query_files` by default, or you may specify any arbitrary filesystem location by setting `$QUERY_PATH` in the environment. The `query_name` argument is the [stem](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.stem) of the desired file, i.e. the base name of the file without the `.sql` extension.
+
+#### Files from S3
+
+In addition to the local filesystem, `sqla-raw` can use [`s3fs`](TK) to read SQL files from an S3 bucket. It checks whether any path specifications are in the form of URLs that begin with the `s3://` scheme component.
+
+- `result_from_file()` takes the full URL to a specific query file
+- `result_by_name()` works with S3 by setting the `$QUERY_PATH` environment variable to the URL of a bucket 
+
+Authentication to S3 is handled via [boto environment variables](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-environment-variables).
 
 ### SQLAlchemy Engine invocation
 
