@@ -7,9 +7,9 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode
 
+import s3fs
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
-
 
 # initialize DB without instantiating engine yet
 DB = None
@@ -35,7 +35,7 @@ def set_dburl():
     qs["application_name"] = appname
     qs = urlencode(qs, doseq=True)
 
-    dburl = f"{baseurl}?qs"
+    dburl = f"{baseurl}?{qs}"
     return dburl
 
 
@@ -128,30 +128,59 @@ def result(sql, returns="dict", autocommit=False, **kwargs):
 
 def result_from_file(path, returns="dict", autocommit=False, **kwargs):
     """Read SQL from file at `path` and submit via `result()` method"""
-    pathobj = Path(path)
-    # If path doesn't exist
-    if not pathobj.exists():
-        raise IOError(f"File '{path}' not found!")
+    # If `path` is a S3 url, read it from there
+    if path.startswith("s3://"):
+        bucket = s3fs.S3FileSystem(anon=False)
+        with bucket.open(path, "rt") as f:
+            sql = f.read()
+    # Otherwise treat `path` as a local file
+    else:
+        pathobj = Path(path)
+        # If path doesn't exist
+        if not pathobj.exists():
+            raise IOError(f"File '{path}' not found!")
 
-    # If it's a directory
-    if pathobj.is_dir():
-        raise IOError(f"'{path}' is a directory!")
+        # If it's a directory
+        if pathobj.is_dir():
+            raise IOError(f"'{path}' is a directory!")
 
-    # Read the given file into memory and pass to result().
-    with open(path) as f:
-        sql = f.read()
-        rows = result(sql=sql, returns=returns, **kwargs)
-        return rows
+        # Read the given file into memory and pass to result().
+        with open(path) as f:
+            sql = f.read()
+    rows = result(sql=sql, returns=returns, autocommit=autocommit, **kwargs)
+    return rows
+
+
+def list_queries():
+    """Get a list of all the SQL files in the query path"""
+    query_path = os.getenv("QUERY_PATH", "query_files")
+
+    # if `query_path` is a S3 url, get list of all SQL files from there
+    if query_path.startswith("s3://"):
+        bucket = s3fs.S3FileSystem(anon=False)
+        queries = list(bucket.glob(f"{query_path}/**.sql"))
+        queries = [f"s3://{i}" for i in queries]
+    # otherwise poll local filesystem
+    else:
+        queries = list(Path(query_path).glob("**/*.sql"))
+        queries = [str(i) for i in queries]
+    return queries
 
 
 def path_by_name(query_name):
-    """Find file matching query_name and return Path object"""
+    """Find file matching query_name and return file handle"""
     # flatten directory and grab all the leaf nodes
-    flat_queries = list(Path(os.getenv("QUERY_PATH", "query_files")).glob("**/*"))
+    queries = list_queries()
     query_file = None
-    query_file_match = list(filter(lambda i: query_name == i.stem, flat_queries))
+    # use regex to find the stem of the file name, and check for a match with query_name
+    # (s3 file handles are just strings and don't support path.stem();
+    #  this works for both)
+    rg = re.compile("[ \\w-]+?(?=\\.)")
+    query_file_match = list(
+        filter(lambda i: query_name == str(rg.findall(i)[0]), queries)
+    )
     if query_file_match:
-        # TODO: Warn if more than one match
+        # TODO: Warn if more than one match (because we flatten subdirectories)
         query_file = query_file_match[0]
     return query_file
 
@@ -159,5 +188,7 @@ def path_by_name(query_name):
 def result_by_name(query_name, returns="dict", autocommit=False, **kwargs):
     """Find SQL file at `$QUERY_PATH/name` and pass to `result_from_file()`"""
     path = path_by_name(query_name)
-    result = result_from_file(path=path, returns=returns, **kwargs)
+    result = result_from_file(
+        path=path, returns=returns, autocommit=autocommit, **kwargs
+    )
     return result
