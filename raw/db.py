@@ -131,8 +131,8 @@ def result_from_file(path, returns="dict", autocommit=False, **kwargs):
     # If `path` is a S3 url, read it from there
     if path.startswith("s3://"):
         bucket = s3fs.S3FileSystem(anon=False)
-        with bucket.open(path, "rt") as f:
-            sql = f.read()
+        with bucket.open(path, "rb") as f:
+            sql = f.read().decode()
     # Otherwise treat `path` as a local file
     else:
         pathobj = Path(path)
@@ -172,13 +172,8 @@ def path_by_name(query_name):
     # flatten directory and grab all the leaf nodes
     queries = list_queries()
     query_file = None
-    # use regex to find the stem of the file name, and check for a match with query_name
-    # (s3 file handles are just strings and don't support path.stem();
-    #  this works for both)
-    rg = re.compile("[ \\w-]+?(?=\\.)")
-    query_file_match = list(
-        filter(lambda i: query_name == str(rg.findall(i)[0]), queries)
-    )
+    # Check for match between query_name and file from list
+    query_file_match = list(filter(lambda i: query_name == Path(i).stem, queries))
     if query_file_match:
         # TODO: Warn if more than one match (because we flatten subdirectories)
         query_file = query_file_match[0]
