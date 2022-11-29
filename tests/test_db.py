@@ -6,7 +6,10 @@ import pytest
 import sqlalchemy.exc
 from sqlalchemy.engine.result import Result
 
-from raw.db import engine, result, result_from_file, result_by_name
+from raw.db import (
+    engine, result, result_from_file, result_by_name,
+    stream, stream_result_by_name
+)
 
 
 @pytest.fixture(autouse=True)
@@ -71,3 +74,31 @@ def test_ddl_result():
 def test_missing_dburl_raises_exception():
     with pytest.raises(ValueError):
         engine(dburl=None)
+
+
+def test_stream_result_by_name():
+    r = stream_result_by_name("good", more=True)
+    assert next(r) == {"foo": "bar"}
+    assert next(r) == {"foo": "baz"}
+
+
+def test_stream():
+    s = stream("select 'bar' as foo;", dict)
+    assert next(s) == {"foo": "bar"}
+
+
+def test_stream_return_type():
+    s = stream("select 'bar' as foo;", lambda s: f"<{s[0]}>")
+    assert next(s) == '<bar>'
+
+
+def test_stream_empty():
+    s = stream("select null limit 0;")
+    with pytest.raises(StopIteration):
+        next(s)
+
+
+def test_stream_error():
+    s = stream("select * from nonexistent_relation")
+    with pytest.raises(sqlalchemy.exc.OperationalError):
+        next(s)
