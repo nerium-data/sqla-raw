@@ -213,7 +213,7 @@ def path_by_name(query_name):
 
 
 def result_by_name(query_name, **kwargs):
-    """Find SQL file at `$QUERY_PATH/name` and pass to `result_from_file()`"""
+    """Find SQL file at `$QUERY_PATH/name`, execute, and return results"""
 
     path = path_by_name(query_name)
     sql = sql_from_file(path)
