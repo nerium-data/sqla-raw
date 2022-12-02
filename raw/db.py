@@ -11,7 +11,7 @@ import s3fs
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
 
-DEFAULT_BATCH_SIZE = 4036
+DEFAULT_BATCH_SIZE = 4096
 
 # initialize DB without instantiating engine yet
 DB = None
@@ -113,7 +113,7 @@ def result(sql, returns="dict", autocommit=False, **kwargs):
 
     """
     with connect() as conn:
-        sql_text = prepare_sql_text(sql, autocommit=False, **kwargs)
+        sql_text = prepare_sql_text(sql, autocommit=autocommit, **kwargs)
         cur = conn.execute(sql_text, **kwargs)
 
         if returns == "proxy":
