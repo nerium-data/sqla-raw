@@ -150,12 +150,6 @@ def stream(sql, return_type=dict, batch_size=DEFAULT_BATCH_SIZE, **kwargs):
         conn = conn.execution_options(stream_results=True, max_row_buffer=batch_size)
         sql_text = prepare_sql_text(sql, **kwargs)
         result = conn.execute(sql_text, **kwargs)
-
-        if not result.returns_rows:
-            # Handle statements without resultsets
-            yield from iter(())
-
-        # Stream mapped results
         yield from map(return_type, result)
 
 
