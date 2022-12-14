@@ -7,8 +7,12 @@ import sqlalchemy.exc
 from sqlalchemy.engine.result import Result
 
 from raw.db import (
-    engine, result, result_from_file, result_by_name,
-    stream, stream_result_by_name
+    engine,
+    result,
+    result_from_file,
+    result_by_name,
+    stream,
+    stream_result_by_name,
 )
 
 
@@ -89,7 +93,7 @@ def test_stream():
 
 def test_stream_return_type():
     s = stream("select 'bar' as foo;", lambda s: f"<{s[0]}>")
-    assert next(s) == '<bar>'
+    assert next(s) == "<bar>"
 
 
 def test_stream_empty():
