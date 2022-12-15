@@ -11,6 +11,8 @@ import s3fs
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
 
+DEFAULT_BATCH_SIZE = 4096
+
 # initialize DB without instantiating engine yet
 DB = None
 
@@ -81,8 +83,21 @@ def process_template(obj, **kwargs):
     return template.render(kwargs)
 
 
+def prepare_sql_text(sql, autocommit=False, **kwargs):
+    tag_regex = re.compile("{%.*%}")
+    if tag_regex.search(sql):
+        sql = process_template(sql, **kwargs)
+
+    sql_text = text(sql)
+    if autocommit:
+        sql_text = sql_text.execution_options(autocommit=True)
+
+    return sql_text
+
+
 def result(sql, returns="dict", autocommit=False, **kwargs):
-    """Submit SQL to the engine connection and return results as list of dicts
+    """
+    Submit SQL to the engine connection and return results as list of dicts
 
     Args:
         `sql`: a string containing valid SQL for submission to the database
@@ -95,38 +110,50 @@ def result(sql, returns="dict", autocommit=False, **kwargs):
         `autocommit` optional boolean, whether to add autocommit=True to execution
         `kwargs`: key-value pairs assigning values to any named parameters
                    in the query
+
     """
     with connect() as conn:
-        # Render with jinja if template tags appear in query body
-        tag_regex = re.compile("{%.*%}")
-        if tag_regex.search(sql):
-            sql = process_template(sql, **kwargs)
-
-        # Execute query against SQLA Engine connection
-        sql_text = text(sql)
-        if autocommit:
-            sql_text = sql_text.execution_options(autocommit=True)
+        sql_text = prepare_sql_text(sql, autocommit=autocommit, **kwargs)
         cur = conn.execute(sql_text, **kwargs)
 
-        # Prepare return object:
-        # Handle statements without resultsets:
-        if not cur.returns_rows:
-            if returns == "proxy":
-                return cur
-            else:
-                return []
-
-        # Handle result formatting:
         if returns == "proxy":
-            return cur  # Return naked SQLA Result object
+            # Return naked SQLA Result object
+            return cur
+
+        if not cur.returns_rows:
+            # Handle statements without resultsets
+            return []
+
         elif returns == "tuples":
-            return list(cur)  # Return all rows as list of tuples
+            # Return all rows as list of tuples
+            return list(cur)
         else:
             # Default: return all rows as list of dictionaries
             return [dict(row) for row in cur]
 
 
-def result_from_file(path, returns="dict", autocommit=False, **kwargs):
+def stream(sql, return_type=dict, batch_size=DEFAULT_BATCH_SIZE, **kwargs):
+    """Submit SQL to the engine connection and return results as list of dicts
+
+    Args:
+        `sql`: a string containing valid SQL for submission to the database
+        `return_type`: Callable that results are mapped by
+        `batch_size`: number of rows fetched by the cursor at once
+        `kwargs`: key-value pairs assigning values to any named parameters
+                   in the query
+
+    Yields:
+        cursor results mapped by `return_type`
+
+    """
+    with connect() as conn:
+        conn = conn.execution_options(stream_results=True, max_row_buffer=batch_size)
+        sql_text = prepare_sql_text(sql, **kwargs)
+        result = conn.execute(sql_text, **kwargs)
+        yield from map(return_type, result)
+
+
+def sql_from_file(path):
     """Read SQL from file at `path` and submit via `result()` method"""
     # If `path` is a S3 url, read it from there
     if path.startswith("s3://"):
@@ -147,8 +174,13 @@ def result_from_file(path, returns="dict", autocommit=False, **kwargs):
         # Read the given file into memory and pass to result().
         with open(path) as f:
             sql = f.read()
-    rows = result(sql=sql, returns=returns, autocommit=autocommit, **kwargs)
-    return rows
+    return sql
+
+
+def result_from_file(path, **kwargs):
+    """Extracted but maintained for backwards compatibility"""
+
+    return result(sql_from_file(path), **kwargs)
 
 
 def list_queries():
@@ -180,10 +212,17 @@ def path_by_name(query_name):
     return query_file
 
 
-def result_by_name(query_name, returns="dict", autocommit=False, **kwargs):
-    """Find SQL file at `$QUERY_PATH/name` and pass to `result_from_file()`"""
+def result_by_name(query_name, **kwargs):
+    """Find SQL file at `$QUERY_PATH/name`, execute, and return results"""
+
     path = path_by_name(query_name)
-    result = result_from_file(
-        path=path, returns=returns, autocommit=autocommit, **kwargs
-    )
-    return result
+    sql = sql_from_file(path)
+    return result(sql, **kwargs)
+
+
+def stream_result_by_name(query_name, **kwargs):
+    """Find SQL file at `$QUERY_PATH/name` and stream results back"""
+
+    path = path_by_name(query_name)
+    sql = sql_from_file(path)
+    return stream(sql, **kwargs)
