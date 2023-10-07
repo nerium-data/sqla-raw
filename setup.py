@@ -20,7 +20,7 @@ VERSION = "1.5.0"
 REQUIRED = [
     "jinja2",
     "s3fs",
-    "sqlalchemy",
+    "sqlalchemy<2",
 ]
 
 EXTRAS = {"mysql": ["PyMySQL"], "pg": ["psycopg2"]}
