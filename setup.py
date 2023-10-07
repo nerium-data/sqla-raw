@@ -15,12 +15,12 @@ URL = "https://github.com/nerium-data/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 
 REQUIRED = [
     "jinja2",
     "s3fs",
-    "sqlalchemy",
+    "sqlalchemy<2",
 ]
 
 EXTRAS = {"mysql": ["PyMySQL"], "pg": ["psycopg2"]}
