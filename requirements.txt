@@ -50,7 +50,7 @@ six==1.16.0
     # via python-dateutil
 sqlalchemy==1.4.49
     # via sqla-raw (setup.py)
-urllib3==1.26.17
+urllib3==1.26.18
     # via botocore
 wrapt==1.15.0
     # via aiobotocore
