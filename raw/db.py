@@ -19,7 +19,6 @@ DB = None
 
 def set_dburl():
     """Get $DATABASE_URL from environment, and append APPLICATION_NAME"""
-    appname = os.getenv("APPLICATION_NAME", "script/sqla-raw")
     _dburl = os.getenv("DATABASE_URL")
 
     if not _dburl:
@@ -34,10 +33,13 @@ def set_dburl():
     except IndexError:
         qs = {}
 
-    qs["application_name"] = appname
+    if not baseurl.startswith("oracle"):
+        appname = os.getenv("APPLICATION_NAME", "script/sqla-raw")
+        qs["application_name"] = appname
+    
     qs = urlencode(qs, doseq=True)
-
     dburl = f"{baseurl}?{qs}"
+    
     return dburl
 
 
