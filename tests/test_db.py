@@ -49,7 +49,6 @@ def test_result_by_name():
     # trigger an error, and verify it is raised
     with pytest.raises(sqlalchemy.exc.OperationalError):
         result_by_name("bad")
-
     # execute SQL from file, verify results in tuple format using Jinja2
     r = result_by_name("good", returns="tuples", more=True)
     assert r == [("bar",), ("baz",)]
@@ -92,7 +91,7 @@ def test_stream():
 
 
 def test_stream_return_type():
-    s = stream("select 'bar' as foo;", lambda s: f"<{s[0]}>")
+    s = stream("select 'bar' as foo;", lambda s: f"<{s['foo']}>")
     assert next(s) == "<bar>"
 
 
