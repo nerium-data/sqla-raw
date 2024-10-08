@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode
 
-import s3fs
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
 
@@ -71,7 +70,7 @@ def connect():
     global DB
     if not DB:
         DB = engine()  # instantiate default engine if necessary
-    conn = DB.connect()
+    conn = DB.begin()
     return conn
 
 
@@ -114,22 +113,23 @@ def result(sql, returns="dict", autocommit=False, **kwargs):
     """
     with connect() as conn:
         sql_text = prepare_sql_text(sql, autocommit=autocommit, **kwargs)
-        cur = conn.execute(sql_text, **kwargs)
+        cur = conn.execute(sql_text, parameters=kwargs)
+        # conn.commit()
 
         if returns == "proxy":
             # Return naked SQLA Result object
             return cur
 
         if not cur.returns_rows:
-            # Handle statements without resultsets
+            # Handle statements without results
             return []
 
         elif returns == "tuples":
-            # Return all rows as list of tuples
+            # Return all rows as list of tuple-like SQLA `Row`s
             return list(cur)
         else:
-            # Default: return all rows as list of dictionaries
-            return [dict(row) for row in cur]
+            # Default: return all rows as list of dictionary-like `RowMapping`s
+            return cur.mappings().all()
 
 
 def stream(sql, return_type=dict, batch_size=DEFAULT_BATCH_SIZE, **kwargs):
@@ -149,31 +149,24 @@ def stream(sql, return_type=dict, batch_size=DEFAULT_BATCH_SIZE, **kwargs):
     with connect() as conn:
         conn = conn.execution_options(stream_results=True, max_row_buffer=batch_size)
         sql_text = prepare_sql_text(sql, **kwargs)
-        result = conn.execute(sql_text, **kwargs)
-        yield from map(return_type, result)
+        result = conn.execute(sql_text, parameters=kwargs)
+        yield from map(return_type, result.mappings())
 
 
 def sql_from_file(path):
     """Read SQL from file at `path` and submit via `result()` method"""
-    # If `path` is a S3 url, read it from there
-    if path.startswith("s3://"):
-        bucket = s3fs.S3FileSystem(anon=False)
-        with bucket.open(path, "rb") as f:
-            sql = f.read().decode()
-    # Otherwise treat `path` as a local file
-    else:
-        pathobj = Path(path)
-        # If path doesn't exist
-        if not pathobj.exists():
-            raise IOError(f"File '{path}' not found!")
+    pathobj = Path(path)
+    # If path doesn't exist
+    if not pathobj.exists():
+        raise IOError(f"File '{path}' not found!")
 
-        # If it's a directory
-        if pathobj.is_dir():
-            raise IOError(f"'{path}' is a directory!")
+    # If it's a directory
+    if pathobj.is_dir():
+        raise IOError(f"'{path}' is a directory!")
 
-        # Read the given file into memory and pass to result().
-        with open(path) as f:
-            sql = f.read()
+    # Read the given file into memory and pass to result().
+    with open(path) as f:
+        sql = f.read()
     return sql
 
 
@@ -187,15 +180,8 @@ def list_queries():
     """Get a list of all the SQL files in the query path"""
     query_path = os.getenv("QUERY_PATH", "query_files")
 
-    # if `query_path` is a S3 url, get list of all SQL files from there
-    if query_path.startswith("s3://"):
-        bucket = s3fs.S3FileSystem(anon=False)
-        queries = list(bucket.glob(f"{query_path}/**.sql"))
-        queries = [f"s3://{i}" for i in queries]
-    # otherwise poll local filesystem
-    else:
-        queries = list(Path(query_path).glob("**/*.sql"))
-        queries = [str(i) for i in queries]
+    queries = list(Path(query_path).glob("**/*.sql"))
+    queries = [str(i) for i in queries]
     return queries
 
 

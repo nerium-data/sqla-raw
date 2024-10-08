@@ -2,7 +2,7 @@
 
 An opinionated, minimalist library for fetching data from a [SQLAlchemy](https://www.sqlalchemy.org/) connection, when you don't need or want an ORM. You know how to write SQL; `sqla-raw` makes it [E-Z](https://media.giphy.com/media/zcCGBRQshGdt6/source.gif) to send that raw SQL to your database and get results, saving a lot of DBAPI boilerplate and providing a simple and consistent interface with a result format that is straightfoward to introspect.
 
-Really not much more than a single method (`raw.db.result()`) that submits raw SQL via a SQLAlchemy [Engine](https://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.Engine) connection. By default, `db.result()` returns all results as a list of dictionaries, keyed by column names. (See __'Usage'__ below for other options)
+Really not much more than a single method (`raw.db.result()`) that submits raw SQL via a SQLAlchemy [Engine](https://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.Engine) connection. By default, `db.result()` returns all results as a list of SQLAlchemy [`RowMapping`](https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.RowMapping) dictionaries, keyed by column names. (See __'Usage – Options'__ below for other options)
 
 For convenience, `result_from_file()` and `result_by_name()` allow you to store your SQL in separate local files for submission to the database via `result()` 
 
@@ -16,15 +16,15 @@ Configure your database connection string by setting `$DATABASE_URL` in your env
 
 ```python
 >>> from raw import db
->>> x = db.result('select version()');
+>>> x = db.result("select version()");
 >>> x
-[{'version': 'PostgreSQL 13.4 on x86_64-apple-darwin19.6.0, compiled by Apple clang version 11.0.3 (clang-1103.0.32.62), 64-bit'}]
+[{'version': 'PostgreSQL 16.3 (Debian 16.3-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit'}]
 ```
 
 Because it's SQLAlchemy, you can safely use [named parameters](https://docs.sqlalchemy.org/en/latest/core/sqlelement.html?highlight=textclause#sqlalchemy.sql.expression.TextClause.bindparams) in your SQL string with colon-prepended `:key` format, and assign values in `kwargs`.
 
 ```python
->>> db.result('select :foo as bar', foo='baz')
+>>> db.result("select :foo as bar", foo="baz")
 [{'bar': 'baz'}]
 ```
 
@@ -32,9 +32,22 @@ Because it's SQLAlchemy, you can safely use [named parameters](https://docs.sqla
 
 You can also use [Jinja2](https://palletsprojects.com/p/jinja/) templating syntax to interpolate the query, if desired. `db.result()` inspects the query for template tags (`"{%.*%}"`) and renders the template to SQL before submitting if tags are present. (It uses a `SandboxedEnvironment` for some measure of injection safety, but avoid this option with untrusted inputs, for obvious reasons.)
 
+```python
+>>> sql = """
+... select * from a_table
+... {% if filter_value %}
+... where a_column = :filter_value
+... {% endif %}
+... """
+>>> db.result(sql)
+[{'a_column': 1}, {'a_column': 2}, {'a_column': 7}, {'a_column': 9}]
+>>> db.result(sql, filter_value=7)
+[{'a_column': 7}]
+```
+
 ### Options
 
-Passing argument `returns` to `db.result()` (or `result_from_file()`) overrides the default result formatting: `returns="tuples"` brings back a list of tuples with row values instead of dictionaries, and `returns="proxy"` returns the plain SQLAlchemy [Result](https://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=resultproxy#sqlalchemy.engine.Result) object directly, for further handling by the caller. The `"proxy"` option allows access to methods (e.g. `fetchone()` or `fetchmany()` ) that `sqla-raw` default usage hides behind its facade; it can also be good for SQL statements (such as `inserts` without `returning` or DDL) that are not expected to return results — although by default these will return an empty list.
+Passing argument `returns` to `db.result()` (or `result_from_file()`) overrides the default result formatting: `returns="tuples"` brings back a list of [`Row`](https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Row) named tuples with row values instead of dictionaries, and `returns="proxy"` returns the plain SQLAlchemy [Result](https://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=resultproxy#sqlalchemy.engine.Result) object directly, for further handling by the caller. The `"proxy"` option allows access to methods (e.g. `fetchone()` or `fetchmany()` ) that `sqla-raw` default usage hides behind its facade; it can also be good for SQL statements (such as `inserts` without `returning` or DDL) that are not expected to return results — although by default these will return an empty list.
 
 ### SQL file handling
 
@@ -44,20 +57,12 @@ For longer or more complex queries, you may find it more convenient and maintain
 
 - `result_by_name()` looks up files with a `.sql` extension in a local directory — it looks in `${PWD}/query_files` by default, or you may specify any arbitrary filesystem location by setting `$QUERY_PATH` in the environment. The `query_name` argument is the [stem](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.stem) of the desired file, i.e. the base name of the file without the `.sql` extension.
 
-#### Files from S3
-
-In addition to the local filesystem, `sqla-raw` can use [`s3fs`](https://s3fs.readthedocs.io/en/latest/) to read SQL files from an S3 bucket. It checks whether any path specifications are in the form of URLs that begin with the `s3://` scheme component.
-
-- `result_from_file()` takes the full URL to a specific query file
-- `result_by_name()` works with S3 by setting the `$QUERY_PATH` environment variable to the URL of a bucket 
-
-Authentication to S3 is handled via [boto environment variables](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-environment-variables).
-
 ### SQLAlchemy Engine invocation
 
 By default, Engine instantiation is handled implicitly on first call to `result()`; subsequent calls use a connection from the pool. The default connection string for the Engine is set by `DATABASE_URL` in the environment, and all other Engine settings use SQLAlchemy defaults. This allows you to simply call `result()` and start querying `$DATABASE_URL` immediately with a minimum of fuss. 
 
-In case you require multiple database connections, or more control over Engine parameters, `db.engine()` wraps `sqlalchemy.create_engine()`, so you can set a different connection string or pass additional settings as keyword arguments (see https://docs.sqlalchemy.org/en/14/core/engines.html for options). Once `db.engine()` is explicitly invoked, the engine so instantiated remains as the active connection pool unless changed again.
+In case you require multiple database connections, or more control over Engine parameters, `db.engine()` wraps `sqlalchemy.create_engine()`, so you can set a different connection string or pass additional settings as keyword arguments (see https://docs.sqlalchemy.org/en/latest/core/engines.html for options). Once `db.engine()` is explicitly invoked, the engine so instantiated remains as the active connection pool unless changed again.
+
 
 ### Exception handling
 
@@ -85,6 +90,6 @@ These are all fine projects, and if `sqla-raw` appeals to you at all, you owe it
     - Also generates modules from folders of SQL files, and can load multiple such modules
 - [Records](https://github.com/kennethreitz-archive/records)
   - Another SQLAlchemy facade, and a big inspiration for `sqla-raw`
-  - Doesn't seem to be actively maintained
+  - ~Doesn't seem to be actively maintained~ (This may have improved somewhat – it's been updated in the last year)
   - Formats results as a specialized `Record` class, based on [`tablib`](http://docs.python-tablib.org/en/latest/)
     - Again, nothing wrong with that — `sqla-raw` favors a standard list-of-dicts format for results instead, as lighter weight and easier to introspect
