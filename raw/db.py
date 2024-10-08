@@ -17,7 +17,7 @@ DB = None
 
 
 def set_dburl():
-    """Get $DATABASE_URL from environment, and append APPLICATION_NAME"""
+    """Get $DATABASE_URL from environment, and append APPLICATION_NAME if Postgres"""
     _dburl = os.getenv("DATABASE_URL")
 
     if not _dburl:
@@ -32,13 +32,13 @@ def set_dburl():
     except IndexError:
         qs = {}
 
-    if not baseurl.startswith("oracle"):
+    if baseurl.startswith("postgres"):
         appname = os.getenv("APPLICATION_NAME", "script/sqla-raw")
         qs["application_name"] = appname
-    
+
     qs = urlencode(qs, doseq=True)
     dburl = f"{baseurl}?{qs}"
-    
+
     return dburl
 
 
@@ -54,7 +54,7 @@ def engine(dburl="", **kwargs):
         `dburl`: a database connection in URL format.
                  Optional, defaults to `$DATABASE_URL` in the environment
         `kwargs`: key-value pairs with other Engine settings, see
-                  https://docs.sqlalchemy.org/en/14/core/engines.html for details
+                  https://docs.sqlalchemy.org/en/latest/core/engines.html for details
     """
     if not dburl:
         dburl = set_dburl()
@@ -104,13 +104,13 @@ def result(sql, returns="dict", autocommit=False, **kwargs):
         `sql`: a string containing valid SQL for submission to the database
         `returns`: {"proxy", "tuples", "dict"}, optional
             indicates desired result set format:
-                - proxy: returns Result
-                - tuples: returns a list of tuples
-                - dict (or other): returns a list of dictionaries
+                - proxy: returns `CursorResult`
+                - tuples: returns a list of `Row`s (like named tuples)
+                - dict (or other): returns a list of `RowMapping`s (like dictionaries)
             "dict" is default, and will also be the result of any other value
         `autocommit` optional boolean, whether to add autocommit=True to execution
         `kwargs`: key-value pairs assigning values to any named parameters
-                   in the query
+                  in the query
 
     """
     with connect() as conn:
@@ -142,7 +142,7 @@ def stream(sql, return_type=dict, batch_size=DEFAULT_BATCH_SIZE, **kwargs):
         `return_type`: Callable that results are mapped by
         `batch_size`: number of rows fetched by the cursor at once
         `kwargs`: key-value pairs assigning values to any named parameters
-                   in the query
+                  in the query
 
     Yields:
         cursor results mapped by `return_type`
@@ -197,6 +197,8 @@ def path_by_name(query_name):
     if query_file_match:
         # TODO: Warn if more than one match (because we flatten subdirectories)
         query_file = query_file_match[0]
+    else:
+        raise IOError(f"No query matching '{query_name}' found in $QUERY_PATH")
     return query_file
 
 
