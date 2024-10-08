@@ -15,7 +15,7 @@ URL = "https://github.com/nerium-data/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "1.6.1"
+VERSION = "1.6.2"
 
 REQUIRED = [
     "jinja2",
