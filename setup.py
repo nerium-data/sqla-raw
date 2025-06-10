@@ -14,10 +14,11 @@ DESCRIPTION = "A tiny library for submitting raw SQL via SQLAlchemy"
 URL = "https://github.com/nerium-data/sqla-raw"
 EMAIL = "thomas@yager-madden.com"
 AUTHOR = "Thomas Yager-Madden"
-REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "1.6.2"
+REQUIRES_PYTHON = ">=3.7.0"
+VERSION = "1.7.0"
 
 REQUIRED = [
+    "cryptography",
     "jinja2",
     "sqlalchemy",
 ]
