@@ -4,13 +4,19 @@
 #
 #    pip-compile
 #
-greenlet==3.1.1
+cffi==1.17.1
+    # via cryptography
+cryptography==44.0.2
+    # via sqla-raw (setup.py)
+greenlet==3.2.0
     # via sqlalchemy
-jinja2==3.1.4
+jinja2==3.1.6
     # via sqla-raw (setup.py)
-markupsafe==2.1.5
+markupsafe==3.0.2
     # via jinja2
-sqlalchemy==2.0.35
+pycparser==2.22
+    # via cffi
+sqlalchemy==2.0.40
     # via sqla-raw (setup.py)
-typing-extensions==4.12.2
+typing-extensions==4.13.2
     # via sqlalchemy

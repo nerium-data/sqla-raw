@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import create_engine, text
 
@@ -42,6 +44,24 @@ def set_dburl():
     return dburl
 
 
+def prepare_key():
+    keyfile = os.getenv("PRIVATE_KEY_PATH")
+    with open(keyfile, "rb") as key:
+        p_key = serialization.load_pem_private_key(
+            key.read(),
+            password=os.getenv("PRIVATE_KEY_PASSPHRASE").encode(),
+            backend=default_backend(),
+        )
+
+    pkb = p_key.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    return pkb
+
+
 def engine(dburl="", **kwargs):
     """Instantiate SQLAlchemy database Engine object.
     Run implicitly by `connect()` using environmental settings, or may be invoked
@@ -63,7 +83,12 @@ def engine(dburl="", **kwargs):
     if hasattr(DB, "dispose"):
         DB.dispose()  # close any previous engine
 
-    DB = create_engine(dburl, **kwargs)
+    # Get key for Snowflake connection if provided in env
+    if os.getenv("PRIVATE_KEY_PATH") and dburl.startswith("snowflake"):
+        pkb = prepare_key()
+        DB = create_engine(dburl, connect_args={"private_key": pkb}, **kwargs)
+    else:
+        DB = create_engine(dburl, **kwargs)
     return DB
 
 
