@@ -63,6 +63,11 @@ By default, Engine instantiation is handled implicitly on first call to `result(
 
 In case you require multiple database connections, or more control over Engine parameters, `db.engine()` wraps `sqlalchemy.create_engine()`, so you can set a different connection string or pass additional settings as keyword arguments (see https://docs.sqlalchemy.org/en/latest/core/engines.html for options). Once `db.engine()` is explicitly invoked, the engine so instantiated remains as the active connection pool unless changed again.
 
+### Snowflake database keypair authentication
+
+Assuming you have a Snowflake user set up with [keypair authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth), `db.engine()` can be configured to connect that way by setting `PRIVATE_KEY_PATH` in the environment to point to your local PEM-formatted private key file along with `PRIVATE_KEY_PASSPHRASE` setting the passphrase for the key.
+
+As with other database drivers, `snowflake-sqlalchemy` is optional and not a strict dependency of `sqla-raw` so will need to be installed separately for Snowflake connections. 
 
 ### Exception handling
 
@@ -70,7 +75,7 @@ Obviously, when interacting with a database, any number of things can go wrong, 
 
 ## Tests
 
-`pytest` tests are located in [tests/](tests/). Install test prerequisites with `pip install -r tests/requirements.txt`; then they can be run with: `python setup.py test` 
+`pytest` tests are located in [tests/](tests/). Install test prerequisites with `pip install -r tests/requirements.txt`; then they can be run with: `pytest --cov` 
 
 ## Alternatives and prior art
 
