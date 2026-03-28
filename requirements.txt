@@ -6,7 +6,7 @@
 #
 cffi==1.17.1
     # via cryptography
-cryptography==44.0.2
+cryptography==46.0.6
     # via sqla-raw (setup.py)
 greenlet==3.2.0
     # via sqlalchemy
