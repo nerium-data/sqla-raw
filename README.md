@@ -8,7 +8,7 @@ For convenience, `result_from_file()` and `result_by_name()` allow you to store 
 
 ## Installation
 
-`pip install sqla-raw[pg]`
+`uv add "sqla-raw[pg]"` (or `pip install sqla-raw[pg]`)
 
 ## Usage
 
@@ -65,7 +65,16 @@ In case you require multiple database connections, or more control over Engine p
 
 ### Snowflake database keypair authentication
 
-Assuming you have a Snowflake user set up with [keypair authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth), `db.engine()` can be configured to connect that way by setting `PRIVATE_KEY_PATH` in the environment to point to your local PEM-formatted private key file along with `PRIVATE_KEY_PASSPHRASE` setting the passphrase for the key.
+Assuming you have a Snowflake user set up with [keypair authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth), `db.engine()` can be configured to connect that way by supplying a PEM-formatted private key in the environment, in either of two ways:
+
+- `PRIVATE_KEY_PATH` — a path to your private key file. Best for local development, where the key is a file on disk anyway.
+- `PRIVATE_KEY` — the key itself, as a string. Best for containers and hosted platforms, where injecting a config value is easier than mounting a file. Because such platforms often can't hold multi-line values, the line breaks may be given as literal `\n` sequences and they will be restored; a real PEM never contains that sequence, so passing a key with genuine newlines works too.
+
+In both cases, set `PRIVATE_KEY_PASSPHRASE` to the passphrase for the key, or leave it unset if the key is not encrypted.
+
+**Set one or the other, not both.** If both are set, `PRIVATE_KEY_PATH` takes precedence and `PRIVATE_KEY` is ignored. That rule is only a tiebreaker, though, and not a good thing to rely on: when the two hold different keys, `PRIVATE_KEY_PASSPHRASE` can only match one of them, so you are as likely as not to get a decryption error that points nowhere near the actual mistake. Pick whichever suits your deployment and leave the other unset.
+
+Note that the key is only read for connection strings beginning with `snowflake`; it is ignored for other databases.
 
 As with other database drivers, `snowflake-sqlalchemy` is optional and not a strict dependency of `sqla-raw` so will need to be installed separately for Snowflake connections. 
 
@@ -75,7 +84,25 @@ Obviously, when interacting with a database, any number of things can go wrong, 
 
 ## Tests
 
-`pytest` tests are located in [tests/](tests/). Install test prerequisites with `pip install -r tests/requirements.txt`; then they can be run with: `pytest --cov` 
+`pytest` tests are located in [tests/](tests/). This project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management, so no separate virtualenv setup is needed:
+
+```sh
+uv sync            # create .venv and install runtime + dev dependencies
+uv run pytest --cov
+```
+
+Dependencies are declared in [pyproject.toml](pyproject.toml) and locked in `uv.lock`. To add a dependency, use `uv add <package>` (or `uv add --dev <package>` for a development-only one) rather than editing the lockfile by hand; `uv lock --upgrade` refreshes all pins.
+
+## Releasing
+
+Bump `version` in [pyproject.toml](pyproject.toml), then:
+
+```sh
+uv build
+uv publish
+git tag vX.Y.Z  # the version you just set
+git push --tags
+```
 
 ## Alternatives and prior art
 

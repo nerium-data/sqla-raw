@@ -1,3 +1,68 @@
 [build-system]
-requires = ["setuptools >= 64"]
+requires = ["setuptools >= 77"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqla-raw"
+version = "1.8.0"
+description = "A tiny library for submitting raw SQL via SQLAlchemy"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Thomas Yager-Madden", email = "thomas@yager-madden.com" }]
+dependencies = [
+    "cryptography",
+    "jinja2",
+    "sqlalchemy",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database :: Front-Ends",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://github.com/nerium-data/sqla-raw"
+Repository = "https://github.com/nerium-data/sqla-raw"
+
+[project.optional-dependencies]
+mysql = ["PyMySQL"]
+pg = ["psycopg"]
+
+[dependency-groups]
+dev = [
+    "coverage[toml]",
+    "flake8",
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.setuptools.packages.find]
+include = ["raw*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["raw"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "except.",
+    "raise.",
+]

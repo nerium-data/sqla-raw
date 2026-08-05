@@ -44,14 +44,49 @@ def set_dburl():
     return dburl
 
 
-def prepare_key():
+def read_key():
+    """Read a PEM-formatted private key from the environment
+
+    The key may be supplied either as a file, via `$PRIVATE_KEY_PATH`, or
+    directly as a string, via `$PRIVATE_KEY`. Set one or the other, not both:
+    if both are set, `$PRIVATE_KEY_PATH` wins and `$PRIVATE_KEY` is ignored.
+
+    Returns:
+        the key as bytes, or None if neither variable is set
+    """
     keyfile = os.getenv("PRIVATE_KEY_PATH")
-    with open(keyfile, "rb") as key:
-        p_key = serialization.load_pem_private_key(
-            key.read(),
-            password=os.getenv("PRIVATE_KEY_PASSPHRASE").encode(),
-            backend=default_backend(),
-        )
+    if keyfile:
+        with open(keyfile, "rb") as key:
+            return key.read()
+
+    key = os.getenv("PRIVATE_KEY")
+    if not key:
+        return None
+
+    # Config systems that can't hold multi-line values often carry the PEM's
+    # line breaks as literal backslash-n. A valid PEM never contains that
+    # sequence, so restoring real newlines here can't corrupt a good key.
+    return key.replace("\\n", "\n").encode()
+
+
+def prepare_key():
+    """Load the private key from the environment as DER bytes for the driver
+
+    Returns:
+        the key in DER format, or None if no key is set in the environment
+    """
+    key = read_key()
+    if not key:
+        return None
+
+    # An unencrypted key is legitimate; `load_pem_private_key` wants None,
+    # rather than an empty password, in that case
+    passphrase = os.getenv("PRIVATE_KEY_PASSPHRASE")
+    p_key = serialization.load_pem_private_key(
+        key,
+        password=passphrase.encode() if passphrase else None,
+        backend=default_backend(),
+    )
 
     pkb = p_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -83,10 +118,20 @@ def engine(dburl="", **kwargs):
     if hasattr(DB, "dispose"):
         DB.dispose()  # close any previous engine
 
-    # Get key for Snowflake connection if provided in env
-    if os.getenv("PRIVATE_KEY_PATH") and dburl.startswith("snowflake"):
+    # Merge into any `connect_args` the caller passed, rather than replacing
+    # them, so driver options like `warehouse` or `role` survive alongside a key
+    connect_args = dict(kwargs.pop("connect_args", None) or {})
+
+    # Get key for Snowflake connection if provided in env. A key passed
+    # explicitly by the caller wins, just as an explicit `dburl` beats
+    # `$DATABASE_URL` above; don't read the environment at all in that case.
+    if dburl.startswith("snowflake") and "private_key" not in connect_args:
         pkb = prepare_key()
-        DB = create_engine(dburl, connect_args={"private_key": pkb}, **kwargs)
+        if pkb:
+            connect_args["private_key"] = pkb
+
+    if connect_args:
+        DB = create_engine(dburl, connect_args=connect_args, **kwargs)
     else:
         DB = create_engine(dburl, **kwargs)
     return DB

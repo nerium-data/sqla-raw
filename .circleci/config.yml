@@ -9,24 +9,32 @@ jobs:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: cimg/python:3.10.7
+      - image: cimg/python:3.9
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
       - checkout
       - run:
-          name: install dependencies
+          name: install uv
+          # Pinned so a new uv release can't change CI behavior on a commit that
+          # didn't touch anything. Bump together with your local uv, since a
+          # stale pin can reject a lockfile a newer uv wrote.
           command: |
-            pip install -r requirements.txt
-            pip install -r tests/requirements.txt
+            curl -LsSf https://astral.sh/uv/0.10.2/install.sh | sh
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - uv-{{ checksum "uv.lock" }}
+      - run:
+          name: install dependencies
+          command: uv sync --frozen
+      - save_cache:
+          key: uv-{{ checksum "uv.lock" }}
+          paths:
+            - ~/.cache/uv
       - run:
           name: run tests
-          command: coverage run setup.py test
-      - run:
-          name: Send to Codecov
-          command: |
-            pip install codecov
-            codecov
+          command: uv run --frozen pytest --cov
       - store_artifacts:
           path: .coverage
 
