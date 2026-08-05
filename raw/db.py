@@ -118,10 +118,20 @@ def engine(dburl="", **kwargs):
     if hasattr(DB, "dispose"):
         DB.dispose()  # close any previous engine
 
-    # Get key for Snowflake connection if provided in env
-    pkb = prepare_key() if dburl.startswith("snowflake") else None
-    if pkb:
-        DB = create_engine(dburl, connect_args={"private_key": pkb}, **kwargs)
+    # Merge into any `connect_args` the caller passed, rather than replacing
+    # them, so driver options like `warehouse` or `role` survive alongside a key
+    connect_args = dict(kwargs.pop("connect_args", None) or {})
+
+    # Get key for Snowflake connection if provided in env. A key passed
+    # explicitly by the caller wins, just as an explicit `dburl` beats
+    # `$DATABASE_URL` above; don't read the environment at all in that case.
+    if dburl.startswith("snowflake") and "private_key" not in connect_args:
+        pkb = prepare_key()
+        if pkb:
+            connect_args["private_key"] = pkb
+
+    if connect_args:
+        DB = create_engine(dburl, connect_args=connect_args, **kwargs)
     else:
         DB = create_engine(dburl, **kwargs)
     return DB

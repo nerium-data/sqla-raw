@@ -226,3 +226,52 @@ def test_engine_without_key_omits_connect_args():
     with mock.patch("raw.db.create_engine") as create:
         engine(dburl="snowflake://user@account/db")
     assert "connect_args" not in create.call_args.kwargs
+
+
+def test_engine_merges_key_into_caller_connect_args():
+    """A caller's driver options must survive alongside the injected key"""
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY": pem_key().decode()}):
+        with mock.patch("raw.db.create_engine") as create:
+            engine(
+                dburl="snowflake://user@account/db",
+                connect_args={"warehouse": "wh", "role": "analyst"},
+            )
+    connect_args = create.call_args.kwargs["connect_args"]
+    assert connect_args["warehouse"] == "wh"
+    assert connect_args["role"] == "analyst"
+    assert "private_key" in connect_args
+
+
+def test_engine_caller_private_key_beats_environment():
+    """An explicitly passed key wins, and the environment is left unread"""
+    env = {"PRIVATE_KEY": pem_key().decode(), "PRIVATE_KEY_PASSPHRASE": PASSPHRASE}
+    with mock.patch.dict(os.environ, env):
+        with mock.patch("raw.db.create_engine") as create:
+            with mock.patch("raw.db.prepare_key") as prepare:
+                engine(
+                    dburl="snowflake://user@account/db",
+                    connect_args={"private_key": b"caller-supplied"},
+                )
+    assert create.call_args.kwargs["connect_args"]["private_key"] == b"caller-supplied"
+    prepare.assert_not_called()
+
+
+def test_engine_preserves_connect_args_for_non_snowflake_url():
+    with mock.patch("raw.db.create_engine") as create:
+        engine(dburl="sqlite:///", connect_args={"timeout": 30})
+    assert create.call_args.kwargs["connect_args"] == {"timeout": 30}
+
+
+def test_engine_tolerates_explicit_none_connect_args():
+    with mock.patch("raw.db.create_engine") as create:
+        engine(dburl="sqlite:///", connect_args=None)
+    assert "connect_args" not in create.call_args.kwargs
+
+
+def test_engine_passes_through_other_kwargs():
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY": pem_key().decode()}):
+        with mock.patch("raw.db.create_engine") as create:
+            engine(dburl="snowflake://user@account/db", pool_size=5, echo=True)
+    assert create.call_args.kwargs["pool_size"] == 5
+    assert create.call_args.kwargs["echo"] is True
+    assert "private_key" in create.call_args.kwargs["connect_args"]

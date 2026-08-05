@@ -16,8 +16,11 @@ jobs:
       - checkout
       - run:
           name: install uv
+          # Pinned so a new uv release can't change CI behavior on a commit that
+          # didn't touch anything. Bump together with your local uv, since a
+          # stale pin can reject a lockfile a newer uv wrote.
           command: |
-            curl -LsSf https://astral.sh/uv/install.sh | sh
+            curl -LsSf https://astral.sh/uv/0.10.2/install.sh | sh
             echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
       - restore_cache:
           keys:
