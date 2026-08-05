@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqla-raw"
-version = "1.7.0"
+version = "1.8.0"
 description = "A tiny library for submitting raw SQL via SQLAlchemy"
 readme = "README.md"
 requires-python = ">=3.9"

@@ -100,7 +100,7 @@ Bump `version` in [pyproject.toml](pyproject.toml), then:
 ```sh
 uv build
 uv publish
-git tag v1.7.0  # matching the version above
+git tag vX.Y.Z  # the version you just set
 git push --tags
 ```
 
