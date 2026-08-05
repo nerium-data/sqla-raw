@@ -65,7 +65,16 @@ In case you require multiple database connections, or more control over Engine p
 
 ### Snowflake database keypair authentication
 
-Assuming you have a Snowflake user set up with [keypair authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth), `db.engine()` can be configured to connect that way by setting `PRIVATE_KEY_PATH` in the environment to point to your local PEM-formatted private key file along with `PRIVATE_KEY_PASSPHRASE` setting the passphrase for the key.
+Assuming you have a Snowflake user set up with [keypair authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth), `db.engine()` can be configured to connect that way by supplying a PEM-formatted private key in the environment, in either of two ways:
+
+- `PRIVATE_KEY_PATH` — a path to your private key file. Best for local development, where the key is a file on disk anyway.
+- `PRIVATE_KEY` — the key itself, as a string. Best for containers and hosted platforms, where injecting a config value is easier than mounting a file. Because such platforms often can't hold multi-line values, the line breaks may be given as literal `\n` sequences and they will be restored; a real PEM never contains that sequence, so passing a key with genuine newlines works too.
+
+In both cases, set `PRIVATE_KEY_PASSPHRASE` to the passphrase for the key, or leave it unset if the key is not encrypted.
+
+**Set one or the other, not both.** If both are set, `PRIVATE_KEY_PATH` takes precedence and `PRIVATE_KEY` is ignored. That rule is only a tiebreaker, though, and not a good thing to rely on: when the two hold different keys, `PRIVATE_KEY_PASSPHRASE` can only match one of them, so you are as likely as not to get a decryption error that points nowhere near the actual mistake. Pick whichever suits your deployment and leave the other unset.
+
+Note that the key is only read for connection strings beginning with `snowflake`; it is ignored for other databases.
 
 As with other database drivers, `snowflake-sqlalchemy` is optional and not a strict dependency of `sqla-raw` so will need to be installed separately for Snowflake connections. 
 

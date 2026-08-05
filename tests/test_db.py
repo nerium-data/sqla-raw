@@ -4,16 +4,22 @@ from unittest import mock
 
 import pytest
 import sqlalchemy.exc
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy.engine.result import Result
 
 from raw.db import (
     engine,
+    prepare_key,
+    read_key,
     result,
     result_from_file,
     result_by_name,
     stream,
     stream_result_by_name,
 )
+
+PASSPHRASE = "super-groovy-big-secret"
 
 
 @pytest.fixture(autouse=True)
@@ -22,6 +28,11 @@ def mock_settings_env_vars():
     with mock.patch.dict(
         os.environ, {"DATABASE_URL": "sqlite:///", "QUERY_PATH": str(query_path)}
     ):
+        # Keep tests hermetic: real keypair settings in a developer's shell must
+        # not leak in and change what the code under test does. `patch.dict`
+        # restores the whole environment on exit, so popping here is safe.
+        for var in ("PRIVATE_KEY", "PRIVATE_KEY_PATH", "PRIVATE_KEY_PASSPHRASE"):
+            os.environ.pop(var, None)
         yield
 
 
@@ -105,3 +116,113 @@ def test_stream_error():
     s = stream("select * from nonexistent_relation")
     with pytest.raises(sqlalchemy.exc.OperationalError):
         next(s)
+
+
+def pem_key(passphrase=None):
+    """Generate a PEM-formatted private key for the keypair auth tests"""
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    if passphrase:
+        encryption = serialization.BestAvailableEncryption(passphrase.encode())
+    else:
+        encryption = serialization.NoEncryption()
+    return key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=encryption,
+    )
+
+
+@pytest.fixture
+def keyfile(tmp_path):
+    """Write an encrypted key to disk and return its path"""
+    path = tmp_path / "rsa_key.p8"
+    path.write_bytes(pem_key(PASSPHRASE))
+    return path
+
+
+def test_read_key_returns_none_when_unset():
+    assert read_key() is None
+
+
+def test_read_key_from_path(keyfile):
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY_PATH": str(keyfile)}):
+        assert read_key() == keyfile.read_bytes()
+
+
+def test_read_key_from_literal():
+    key = pem_key()
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY": key.decode()}):
+        assert read_key() == key
+
+
+def test_read_key_restores_escaped_newlines():
+    key = pem_key()
+    escaped = key.decode().replace("\n", "\\n")
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY": escaped}):
+        assert read_key() == key
+
+
+def test_read_key_path_takes_precedence_over_literal(keyfile):
+    env = {
+        "PRIVATE_KEY_PATH": str(keyfile),
+        "PRIVATE_KEY": pem_key().decode(),
+    }
+    with mock.patch.dict(os.environ, env):
+        assert read_key() == keyfile.read_bytes()
+
+
+def test_prepare_key_returns_none_when_unset():
+    assert prepare_key() is None
+
+
+@pytest.mark.parametrize("source", ["PRIVATE_KEY_PATH", "PRIVATE_KEY"])
+def test_prepare_key_from_either_source(tmp_path, source):
+    key = pem_key(PASSPHRASE)
+    if source == "PRIVATE_KEY_PATH":
+        path = tmp_path / "rsa_key.p8"
+        path.write_bytes(key)
+        env = {source: str(path)}
+    else:
+        env = {source: key.decode()}
+    env["PRIVATE_KEY_PASSPHRASE"] = PASSPHRASE
+
+    with mock.patch.dict(os.environ, env):
+        pkb = prepare_key()
+
+    # DER-encoded PKCS8, decrypted, as the Snowflake driver expects
+    assert isinstance(pkb, bytes)
+    serialization.load_der_private_key(pkb, password=None)
+
+
+def test_prepare_key_without_passphrase():
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY": pem_key().decode()}):
+        pkb = prepare_key()
+    serialization.load_der_private_key(pkb, password=None)
+
+
+def test_prepare_key_wrong_passphrase_raises():
+    env = {"PRIVATE_KEY": pem_key(PASSPHRASE).decode(), "PRIVATE_KEY_PASSPHRASE": "nope"}
+    with mock.patch.dict(os.environ, env):
+        with pytest.raises(ValueError):
+            prepare_key()
+
+
+def test_engine_ignores_key_for_non_snowflake_url():
+    """A key in the env must not be passed to a non-Snowflake driver"""
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY": pem_key().decode()}):
+        with mock.patch("raw.db.create_engine") as create:
+            engine(dburl="sqlite:///")
+    assert "connect_args" not in create.call_args.kwargs
+
+
+def test_engine_passes_key_for_snowflake_url():
+    with mock.patch.dict(os.environ, {"PRIVATE_KEY": pem_key().decode()}):
+        with mock.patch("raw.db.create_engine") as create:
+            engine(dburl="snowflake://user@account/db")
+    assert "private_key" in create.call_args.kwargs["connect_args"]
+
+
+def test_engine_without_key_omits_connect_args():
+    with mock.patch("raw.db.create_engine") as create:
+        engine(dburl="snowflake://user@account/db")
+    assert "connect_args" not in create.call_args.kwargs
