@@ -8,7 +8,7 @@ For convenience, `result_from_file()` and `result_by_name()` allow you to store 
 
 ## Installation
 
-`pip install sqla-raw[pg]`
+`uv add "sqla-raw[pg]"` (or `pip install sqla-raw[pg]`)
 
 ## Usage
 
@@ -75,7 +75,25 @@ Obviously, when interacting with a database, any number of things can go wrong, 
 
 ## Tests
 
-`pytest` tests are located in [tests/](tests/). Install test prerequisites with `pip install -r tests/requirements.txt`; then they can be run with: `pytest --cov` 
+`pytest` tests are located in [tests/](tests/). This project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management, so no separate virtualenv setup is needed:
+
+```sh
+uv sync            # create .venv and install runtime + dev dependencies
+uv run pytest --cov
+```
+
+Dependencies are declared in [pyproject.toml](pyproject.toml) and locked in `uv.lock`. To add a dependency, use `uv add <package>` (or `uv add --dev <package>` for a development-only one) rather than editing the lockfile by hand; `uv lock --upgrade` refreshes all pins.
+
+## Releasing
+
+Bump `version` in [pyproject.toml](pyproject.toml), then:
+
+```sh
+uv build
+uv publish
+git tag v1.7.0  # matching the version above
+git push --tags
+```
 
 ## Alternatives and prior art
 
